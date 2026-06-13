@@ -29,7 +29,44 @@ services:
       - keycloak-server-vol:/opt/keycloak/data/import/
     depends_on:
       - keycloak-mysql
+  docs-mongodb:
+    image: mongo:8.0.0
+    container_name: docs-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+    volumes:
+      - docs-mongo-vol:/data/db
+  mongo-express:
+    image: mongo-express:latest
+    container_name: mongo-express-ui
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_BASICAUTH_USERNAME: user
+      ME_CONFIG_BASICAUTH_PASSWORD: user
+      ME_CONFIG_MONGODB_SERVER: docs-mongodb
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: password
+    depends_on:
+      - docs-mongodb
+  spicedb:
+    image: authzed/spicedb:v1.53.0
+    container_name: spicedb
+    ports:
+      - "50051:50051"
+      - "50052:50052"
+      - "9090:9090"
+    environment:
+      SPICEDB_GRPC_PRESHARED_KEY: preshared-key
+      SPICEDB_HTTP_ENABLED: "true"
+      SPICEDB_DASHBOARD_ENABLED: "true"
+      SPICEDB_LOG_FORMAT: console
+    command: serve
 
 volumes:
   keycloak-db-vol:
   keycloak-server-vol:
+  docs-mongo-vol:
