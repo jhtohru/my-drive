@@ -1,0 +1,96 @@
+{
+	"info": {
+		"_postman_id": "9b15e4c6-4986-4df0-868a-b2d31db93c4b",
+		"name": "My Docs",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "2827192"
+	},
+	"item": [
+		{
+			"name": "List Documents",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{api_endpoint}}/docs",
+					"host": [
+						"{{api_endpoint}}"
+					],
+					"path": [
+						"docs"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"auth": {
+		"type": "oauth2",
+		"oauth2": [
+			{
+				"key": "scope",
+				"value": "openid",
+				"type": "string"
+			},
+			{
+				"key": "clientId",
+				"value": "postman",
+				"type": "string"
+			},
+			{
+				"key": "accessTokenUrl",
+				"value": "http://localhost:8181/realms/master/protocol/openid-connect/token",
+				"type": "string"
+			},
+			{
+				"key": "authUrl",
+				"value": "http://localhost:8181/realms/master/protocol/openid-connect/auth",
+				"type": "string"
+			},
+			{
+				"key": "redirect_uri",
+				"value": "https://oauth.pstmn.io/v1/browser-callback",
+				"type": "string"
+			},
+			{
+				"key": "grant_type",
+				"value": "authorization_code_with_pkce",
+				"type": "string"
+			},
+			{
+				"key": "tokenName",
+				"value": "Keycloak Token",
+				"type": "string"
+			},
+			{
+				"key": "addTokenTo",
+				"value": "header",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"requests": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"requests": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	]
+}
