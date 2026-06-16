@@ -3,10 +3,11 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -37,7 +38,7 @@ func main() {
 			log.Fatalf("Failed to disconnect securely: %v", err)
 		}
 	}()
-	coll := mongoClient.Database("my_database").Collection("my_collection")
+	coll := mongoClient.Database("my_docs").Collection("document")
 
 	keycloak := gocloak.NewClient("http://localhost:8181")
 
@@ -50,11 +51,14 @@ func main() {
 		log.Fatalf("Failed to connect to SpiceDB: %s", err)
 	}
 
+	logHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{AddSource: true})
+	logger := slog.New(logHandler)
+
 	mux := http.NewServeMux()
 	mdw := authnMiddleware(keycloak)
-	mux.Handle("POST /docs", mdw(createDocumentHandler(coll, spiceDB)))
+	mux.Handle("POST /docs", mdw(createDocumentHandler(logger, coll, spiceDB)))
 	mux.Handle("GET /docs/{doc_id}", mdw(getDocumentHandler(coll, spiceDB)))
-	mux.Handle("GET /docs", mdw(listDocumentHandler(coll, spiceDB)))
+	mux.Handle("GET /docs", mdw(listDocumentHandler(logger, coll, spiceDB)))
 	mux.Handle("PUT /docs/{doc_id}", mdw(updateDocumentHandler(coll, spiceDB)))
 	mux.Handle("DELETE /docs/{doc_id}", mdw(deleteDocumentHandler(coll, spiceDB)))
 	httpServer := &http.Server{
@@ -109,6 +113,7 @@ type document struct {
 }
 
 func createDocumentHandler(
+	logger *slog.Logger,
 	coll *mongo.Collection,
 	spiceDB *authzed.Client,
 ) http.Handler {
@@ -147,7 +152,7 @@ func createDocumentHandler(
 			}},
 		})
 		if err != nil {
-			// TODO: log err
+			logger.Error("failed to write relationship into spicedb", slog.Any("error", err))
 			http.Error(w, "unexpected error", http.StatusInternalServerError)
 			return
 		}
@@ -165,7 +170,7 @@ func createDocumentHandler(
 		}
 		_, err = coll.InsertOne(r.Context(), doc)
 		if err != nil {
-			// TODO: log err
+			logger.Error("failed to insert document into mongo", slog.Any("error", err))
 			http.Error(w, "unexpected error", http.StatusInternalServerError)
 			return
 		}
@@ -263,6 +268,7 @@ func getDocumentHandler(
 }
 
 func listDocumentHandler(
+	logger *slog.Logger,
 	coll *mongo.Collection,
 	spiceDB *authzed.Client,
 ) http.Handler {
@@ -277,12 +283,11 @@ func listDocumentHandler(
 			}},
 		})
 		if err != nil {
-			// TODO: log err
-			fmt.Printf("unexpected error: SpiceDB.LookupResources: %s\n", err) // TODO: remove this line
+			logger.Error("failed to lookup user's documents on spicedb", slog.Any("error", err))
 			http.Error(w, "unexpected error", http.StatusInternalServerError)
 			return
 		}
-		var docIDs []primitive.Binary
+		docIDs := []primitive.Binary{}
 		for {
 			resp, err := stream.Recv()
 			if err == io.EOF {
@@ -304,8 +309,7 @@ func listDocumentHandler(
 		})
 		cursor, err := coll.Find(r.Context(), filter, opts)
 		if err != nil {
-			// TODO: log err
-			fmt.Printf("unexpected error: MongoDB.Find: %s\n", err) // TODO: remove this line
+			logger.Error("failed to find document on mongo", slog.Any("error", err))
 			http.Error(w, "unexpected error", http.StatusInternalServerError)
 			return
 		}
@@ -317,8 +321,7 @@ func listDocumentHandler(
 		}
 		var models []model
 		if err := cursor.All(r.Context(), &models); err != nil {
-			// TODO: log err
-			fmt.Printf("unexpected error: MongoDBCursor.All: %s\n", err) // TODO: remove this line
+			logger.Error("failed to read documents from mongo", slog.Any("error", err))
 			http.Error(w, "unexpected error", http.StatusInternalServerError)
 			return
 		}
