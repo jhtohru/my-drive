@@ -17,12 +17,17 @@ func NewServer(
 ) http.Handler {
 	mux := http.NewServeMux()
 
-	mdw := authnMiddleware(keycloak)
-	mux.Handle("POST /docs", mdw(createDocumentHandler(logger, spiceDB, mongoCol)))
-	mux.Handle("GET /docs/{doc_id}", mdw(getDocumentHandler(logger, spiceDB, mongoCol)))
-	mux.Handle("GET /docs", mdw(listDocumentHandler(logger, spiceDB, mongoCol)))
-	mux.Handle("PUT /docs/{doc_id}", mdw(updateDocumentHandler(logger, spiceDB, mongoCol)))
-	mux.Handle("DELETE /docs/{doc_id}", mdw(deleteDocumentHandler(logger, spiceDB, mongoCol)))
+	mch := NewMiddlewareChain(
+		authnMiddleware(keycloak),
+		corsMiddleware,
+	)
+	mux.Handle("OPTIONS /docs", corsMiddleware(http.HandlerFunc(nopHandler)))
+	mux.Handle("OPTIONS /docs/{doc_id}", corsMiddleware(http.HandlerFunc(nopHandler)))
+	mux.Handle("POST /docs", mch.Then(createDocumentHandler(logger, spiceDB, mongoCol)))
+	mux.Handle("GET /docs/{doc_id}", mch.Then(getDocumentHandler(logger, spiceDB, mongoCol)))
+	mux.Handle("GET /docs", mch.Then(listDocumentHandler(logger, spiceDB, mongoCol)))
+	mux.Handle("PUT /docs/{doc_id}", mch.Then(updateDocumentHandler(logger, spiceDB, mongoCol)))
+	mux.Handle("DELETE /docs/{doc_id}", mch.Then(deleteDocumentHandler(logger, spiceDB, mongoCol)))
 
 	return mux
 }

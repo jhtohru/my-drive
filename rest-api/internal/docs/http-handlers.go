@@ -7,6 +7,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -22,9 +23,24 @@ import (
 type Document struct {
 	ID        uuid.UUID `json:"id"`
 	Title     string    `json:"title"`
-	Contents  string    `json:"contents"`
+	Content   string    `json:"content"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type Middleware func(http.Handler) http.Handler
+
+type MiddlewareChain []Middleware
+
+func NewMiddlewareChain(mws ...Middleware) MiddlewareChain {
+	return mws
+}
+
+func (mc MiddlewareChain) Then(final http.Handler) http.Handler {
+	for _, mw := range slices.Backward(mc) {
+		final = mw(final)
+	}
+	return final
 }
 
 func authnMiddleware(
@@ -59,9 +75,23 @@ func authnMiddleware(
 	}
 }
 
+func nopHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 type request struct {
-	Title    string `json:"title"`
-	Contents string `json:"contents"`
+	Title   string `json:"title"`
+	Content string `json:"content"`
 }
 
 func (req request) Validate() string {
@@ -93,7 +123,7 @@ func createDocumentHandler(
 		doc := &Document{
 			ID:        docID,
 			Title:     req.Title,
-			Contents:  req.Contents,
+			Content:   req.Content,
 			CreatedAt: now,
 			UpdatedAt: now,
 		}
@@ -164,6 +194,10 @@ func listDocumentHandler(
 	mongoCol *mongo.Collection,
 ) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
 		usrID := mustUserIDFromContext(r.Context())
 		stream, err := spiceDB.LookupResources(r.Context(), &v1.LookupResourcesRequest{
 			ResourceObjectType: "document",
@@ -250,7 +284,7 @@ func updateDocumentHandler(
 		update := bson.M{
 			"$set": bson.M{
 				"title":      req.Title,
-				"contents":   req.Contents,
+				"content":    req.Content,
 				"updated_at": now,
 			},
 		}
@@ -262,7 +296,7 @@ func updateDocumentHandler(
 		}
 
 		mDoc.Title = req.Title
-		mDoc.Contents = req.Contents
+		mDoc.Content = req.Content
 		mDoc.UpdatedAt = now
 		doc := mustMongoToDocument(&mDoc)
 		if err := encode(w, doc, http.StatusOK); err != nil {
@@ -399,7 +433,7 @@ func checkPermission(
 type mongoDocument struct {
 	ID        primitive.Binary `bson:"_id"`
 	Title     string           `bson:"title"`
-	Contents  string           `bson:"contents"`
+	Content   string           `bson:"content"`
 	CreatedAt time.Time        `bson:"created_at"`
 	UpdatedAt time.Time        `bson:"updated_at"`
 }
@@ -408,7 +442,7 @@ func documentToMongo(doc *Document) *mongoDocument {
 	return &mongoDocument{
 		ID:        uuidToMongoID(doc.ID),
 		Title:     doc.Title,
-		Contents:  doc.Contents,
+		Content:   doc.Content,
 		CreatedAt: doc.CreatedAt,
 		UpdatedAt: doc.UpdatedAt,
 	}
@@ -418,7 +452,7 @@ func mustMongoToDocument(mDoc *mongoDocument) *Document {
 	return &Document{
 		ID:        mustUUIDFromMongoID(mDoc.ID),
 		Title:     mDoc.Title,
-		Contents:  mDoc.Contents,
+		Content:   mDoc.Content,
 		CreatedAt: mDoc.CreatedAt,
 		UpdatedAt: mDoc.UpdatedAt,
 	}
