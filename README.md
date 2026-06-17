@@ -7,3 +7,5 @@ Reference to setup Keycloak and React: https://dev.to/anushibin007/keycloak-oaut
 - Prevent the "new enemy" problem
 - Fix or document data/ chmod issues when running .sh scripts, that spin docker containers that write directories and backup files.
 - Document make init-data and data backup.
+- Remove unneeded port forwarding on docker-compose
+- Is it possible to implement leopard caching?
