@@ -1,5 +1,3 @@
-version: "3"
-
 services:
   keycloak-mysql:
     image: mysql:8
@@ -63,7 +61,7 @@ services:
     depends_on:
       - docs-mongodb
   spicedb:
-    image: authzed/spicedb:v1.53.0
+    image: authzed/spicedb:v1.54.0
     container_name: spicedb
     ports:
       - "50051:50051"
