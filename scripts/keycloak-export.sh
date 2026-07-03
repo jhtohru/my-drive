@@ -2,11 +2,12 @@
 
 docker run --rm \
   --name keycloak-export \
-	--net my-docs_default \
-  -v $(pwd)/data/keycloak:/workspace \
+	--net my-drive_default \
+  -v $(pwd)/data:/workspace \
+  -w /workspace \
   quay.io/keycloak/keycloak:26.6.3 \
   export \
-  --dir /workspace \
+  --dir ./keycloak/ \
   --realm master \
   --db mysql \
   --db-url-host keycloak-mysql \
@@ -14,4 +15,3 @@ docker run --rm \
   --db-schema keycloak \
   --db-username keycloak \
   --db-password password
-  

@@ -7,3 +7,23 @@ definition document {
 	permission write = owner
 	permission delete = owner
 }
+
+definition node {
+	relation parent: node
+	relation owner: user
+	relation editor: user
+	relation viewer: user
+
+	permission edit = editor + parent->edit + owner
+	permission update = edit
+	permission delete = edit
+	permission share = edit
+	permission edit_share = edit
+	permission list_shares = edit
+	permission unshare = edit
+	permission move_out = edit
+	permission move_in = edit
+	permission view = viewer + parent->view + edit
+	permission list_contents = view
+	permission sharee = viewer + editor
+}

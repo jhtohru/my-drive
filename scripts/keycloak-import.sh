@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 
 docker run --rm \
-  --name keycloak-export \
-	--net my-docs_default \
+  --net my-drive_default \
   -v $(pwd)/data/keycloak:/workspace \
   quay.io/keycloak/keycloak:26.6.3 \
   import \

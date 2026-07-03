@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 
 docker run --rm \
-	--name spicedb-write-relationship \
-	--net my-docs_default \
+	--net my-drive_default \
 	-v $(pwd)/schema.zed:/workspace/schema.zed \
 	-e ZED_ENDPOINT="spicedb:50051" \
     -e ZED_TOKEN="preshared-key" \

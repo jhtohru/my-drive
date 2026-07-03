@@ -2,7 +2,7 @@
 
 docker run --rm \
 	--name spicedb-export \
-	--net my-docs_default \
+	--net my-drive_default \
 	-v $(pwd)/data/spicedb:/workspace \
 	-e ZED_ENDPOINT="spicedb:50051" \
     -e ZED_TOKEN="preshared-key" \

@@ -18,11 +18,9 @@ services:
       - "8080:80"
     environment:
       PMA_HOST: keycloak-mysql
-  keycloak-server:
-    image: keycloak/keycloak:26.6.3
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.6.3
     container_name: keycloak
-    volumes:
-      - .:/opt/keycloak/data/import 
     ports:
       - "8181:8080"
     environment:
@@ -34,19 +32,32 @@ services:
       KC_DB_SCHEMA: keycloak
       KC_DB_USERNAME: keycloak
       KC_DB_PASSWORD: password
+      KC_HEALTH_ENABLED: "true"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - |
+          set -e
+          exec 3<>/dev/tcp/localhost/9000
+          echo -e 'GET /health/live HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3
+          timeout 2 | grep -E '"status"[[:space:]]*:[[:space:]]*"UP"' <&3 
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
     command: "start-dev"
     depends_on:
       - keycloak-mysql
-  docs-mongodb:
+  mongo:
     image: mongo:8.0.0
-    container_name: docs-mongodb
+    container_name: mongo
     ports:
       - "27017:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: password
     volumes:
-      - docs-mongo-vol:/data/db
+      - mongo-vol:/data/db
   mongo-express:
     image: mongo-express:latest
     container_name: mongo-express-ui
@@ -55,11 +66,11 @@ services:
     environment:
       ME_CONFIG_BASICAUTH_USERNAME: user
       ME_CONFIG_BASICAUTH_PASSWORD: user
-      ME_CONFIG_MONGODB_SERVER: docs-mongodb
+      ME_CONFIG_MONGODB_SERVER: mongo
       ME_CONFIG_MONGODB_ADMINUSERNAME: root
       ME_CONFIG_MONGODB_ADMINPASSWORD: password
     depends_on:
-      - docs-mongodb
+      - mongo
   spicedb:
     image: authzed/spicedb:v1.54.0
     container_name: spicedb
@@ -80,7 +91,19 @@ services:
       timeout: 5s
       retries: 3
       start_period: 5s
+  spicedb-schema-writer:
+    image: authzed/zed:v1.1.1
+    container_name: spicedb-schema-writer
+    volumes:
+      - ./schema.zed:/workspace/schema.zed
+    environment:
+      ZED_ENDPOINT: spicedb:50051
+      ZED_TOKEN: preshared-key
+      ZED_INSECURE: "true"
+    command: schema write /workspace/schema.zed
+    depends_on:
+      - spicedb
+
 volumes:
   keycloak-db-vol:
-  keycloak-server-vol:
-  docs-mongo-vol:
+  mongo-vol:

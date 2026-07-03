@@ -1,4 +1,4 @@
-module github.com/jhtohru/my-docs/rest-api
+module github.com/jhtohru/my-drive/rest-api
 
 go 1.25.8
 

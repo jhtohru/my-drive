@@ -22,7 +22,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	"github.com/jhtohru/my-docs/rest-api/internal/docs"
+	"github.com/jhtohru/my-drive/rest-api/internal/docs"
 )
 
 func main() {
@@ -45,7 +45,7 @@ var (
 
 func run(ctx context.Context) error {
 	flag.StringVar(&mongoEp, "mongo-endpoint", "mongodb://root:password@localhost:27017", "Mongo endpoint")
-	flag.StringVar(&mongoDB, "mongo-db", "my_docs", "Mongo database name")
+	flag.StringVar(&mongoDB, "mongo-db", "my-drive", "Mongo database name")
 	flag.StringVar(&mongoDocsCol, "mongo-docs-col", "document", "documents Mongo colection name")
 	flag.StringVar(&keycloakEp, "keycloak-endpoint", "http://localhost:8181", "Keycloak endpoint")
 	flag.StringVar(&spiceDBEp, "spicedb-endpoint", "localhost:50051", "SpiceDB endpoint")
