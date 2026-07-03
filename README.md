@@ -1,6 +1,18 @@
 Reference to setup Keycloak and React: https://dev.to/anushibin007/keycloak-oauth2-react-js-integration-34bl
 
 ## TODO
+- Rename project to my-drive
+- Update SpiceDB schema
+- Create a custom realm on Keycloak, setup clients and generate backup
+- Create gRPC server with a single endpoint to create a user alongside with her home directory
+- Utilize Keycloak Custom SPI to integrate user registering in Keycloak with the user creation endpoint
+- Develop gRPC's CRUD endpoints 
+- Integrate REST API with gRPC server
+- Setup init-data
+- Develop additional gRPC's endpoints and integrate with the REST API
+- Setup init-data
+- Implement recursive deletion
+- Update frontend
 - Review docker-compose and learn what I don't know (e.g. volumes)
 	- Learn about Docker networks and how to use them in this project
 - Fix image versions on docker-compose
@@ -8,4 +20,6 @@ Reference to setup Keycloak and React: https://dev.to/anushibin007/keycloak-oaut
 - Fix or document data/ chmod issues when running .sh scripts, that spin docker containers that write directories and backup files.
 - Document make init-data and data backup.
 - Remove unneeded port forwarding on docker-compose
-- Is it possible to implement leopard caching?
+- Implement reverse search
+	- Utilize SpiceDB's Watch API to listen to permission changes in real time to continuously update an authorized_principals or viewers array field inside each document in ElasticSearch.
+- Check if using MySQL's data backup/restore is better than using Keycloak's.
