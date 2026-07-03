@@ -1,0 +1,29 @@
+delete(usr, obj):
+	if usr CANNOT edit obj:
+		raise access forbidden error
+
+	if usr does NOT own obj:
+		move(obj, obj.owner.home)
+		return
+
+	if obj is a file:
+		destroy(obj)
+		return
+
+	for each child on obj.children:
+		delete(usr, child)
+
+	if obj is empty:
+		destroy(obj)
+
+
+
+
+user_move_object(usr, obj, dst):
+	if usr CANNOT edit obj
+		|| usr CANNOT edit obj.parent
+		|| usr CANNOT edit dst:
+		raise access forbidden error
+
+	delete relationship obj parent obj.parent
+	create relationship obj parent dst

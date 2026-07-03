@@ -1,0 +1,268 @@
+syntax = "proto3";
+
+package filesystem.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/jhtohru/my-docs/filesystem/gen/go/api";
+
+service FileSystemService {
+  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse) {}
+  rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse) {}
+  rpc CreateNode(CreateNodeRequest) returns (CreateNodeResponse) {}
+  rpc GetNode(GetNodeRequest) returns (GetNodeResponse) {}
+  rpc ListFolderContents(ListFolderContentsRequest) returns (ListFolderContentsResponse) {}
+  rpc ListNodesSharedWithUser(ListNodesSharedWithUserRequest) returns (ListNodesSharedWithUserResponse) {}
+  rpc UpdateNode(UpdateNodeRequest) returns (UpdateNodeResponse) {}
+  rpc DeleteNode(DeleteNodeRequest) returns (DeleteNodeResponse) {}
+  rpc ShareNode(ShareNodeRequest) returns (ShareNodeResponse) {}
+  rpc ListNodeShares(ListNodeSharesRequest) returns (ListNodeSharesResponse) {}
+  rpc UpdateNodeShare(UpdateNodeShareRequest) returns (UpdateNodeShareResponse) {}
+  rpc UnshareNode(UnshareNodeRequest) returns (UnshareNodeResponse) {}
+  rpc MoveNode(MoveNodeRequest) returns (MoveNodeResponse) {}
+}
+
+message CreateUserRequest {
+  string id = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+message CreateUserResponse {
+  User user = 1;
+}
+
+message DeleteUserRequest {
+  string id = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+message DeleteUserResponse {
+  User user = 1;
+}
+
+message CreateNodeRequest {
+  NodeType type = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).enum = {
+      defined_only: true
+      not_in: [0]
+    }
+  ];
+  string parent_folder_id = 2 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  string owner_id = 3 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  string title = 4 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 255
+  ];
+  optional bytes data = 5 [(buf.validate.field).bytes.max_len = 1048576 /* 10 MB */];
+
+  option (buf.validate.message).cel = {
+    id: "folder.data_check"
+    message: "folder-typed nodes must have no data"
+    expression: "this.type != filesystem.v1.NodeType.NODE_TYPE_FOLDER || !has(this.data)"
+  };
+}
+
+message CreateNodeResponse {
+  Node node = 1;
+}
+
+message GetNodeRequest {
+  string id = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+message GetNodeResponse {
+  Node node = 1;
+}
+
+message UpdateNodeRequest {
+  string id = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  string title = 2 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 255
+  ];
+  optional bytes data = 3;
+}
+
+message UpdateNodeResponse {
+  Node node = 1;
+}
+
+message ListFolderContentsRequest {
+  string folder_id = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+message ListFolderContentsResponse {
+  repeated Node nodes = 1;
+}
+
+message ListNodesSharedWithUserRequest {
+  string user_id = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+message ListNodesSharedWithUserResponse {
+  repeated Node nodes = 1;
+}
+
+message DeleteNodeRequest {
+  string id = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+message DeleteNodeResponse {
+  Node node = 1;
+}
+
+message ShareNodeRequest {
+  string node_id = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  string sharee_id = 2 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  AccessRole access_role = 3 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).enum = {
+      defined_only: true
+      not_in: [0]
+    }
+  ];
+}
+
+message ShareNodeResponse {
+  NodeShare node_share = 1;
+}
+
+message ListNodeSharesRequest {
+  string node_id = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+message ListNodeSharesResponse {
+  repeated NodeShare node_shares = 1;
+}
+
+message UpdateNodeShareRequest {
+  string node_id = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  string sharee_id = 2 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  AccessRole access_role = 3 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).enum = {
+      defined_only: true
+      not_in: [0]
+    }
+  ];
+}
+
+message UpdateNodeShareResponse {
+  NodeShare node_share = 1;
+}
+
+message UnshareNodeRequest {
+  string node_id = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  string sharee_id = 2 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  AccessRole access_role = 3 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).enum = {
+      defined_only: true
+      not_in: [0]
+    }
+  ];
+}
+
+message UnshareNodeResponse {
+  NodeShare node_share = 1;
+}
+
+message MoveNodeRequest {
+  string node_id = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  string dest_folder_id = 2 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+message MoveNodeResponse {
+  Node node = 1;
+}
+
+message User {
+  string id = 1;
+  string home_folder_id = 2;
+  google.protobuf.Timestamp created_at = 3;
+}
+
+enum AccessRole {
+  ACCESS_ROLE_UNSPECIFIED = 0;
+  ACCESS_ROLE_VIEWER = 1;
+  ACCESS_ROLE_EDITOR = 2;
+}
+
+message NodeShare {
+  string node_id = 1;
+  string sharee_id = 2;
+  AccessRole access_role = 3;
+}
+
+enum NodeType {
+  NODE_TYPE_UNSPECIFIED = 0;
+  NODE_TYPE_FILE = 1;
+  NODE_TYPE_FOLDER = 2;
+}
+
+message Node {
+  string id = 1;
+  NodeType type = 2;
+  string parent_folder_id = 3;
+  string owner_id = 4;
+  string title = 5;
+  bytes data = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}

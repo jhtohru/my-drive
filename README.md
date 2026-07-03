@@ -9,3 +9,4 @@ Reference to setup Keycloak and React: https://dev.to/anushibin007/keycloak-oaut
 - Document make init-data and data backup.
 - Remove unneeded port forwarding on docker-compose
 - Is it possible to implement leopard caching?
+- Rename the project to my-drive
