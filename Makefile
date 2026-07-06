@@ -1,3 +1,12 @@
+ifneq ($(wildcard .env),)
+    include .env
+    export $(shell sed 's/=.*//' .env)
+endif
+
+.PHONY: start-local
+start-local:
+	cd rest-api && go run cmd/server/main.go
+
 .PHONY: local-dev
 local-dev:
 	docker compose down -v && \

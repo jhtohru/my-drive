@@ -2,15 +2,12 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"log"
 	"log/slog"
-	"net"
 	"net/http"
 	"os"
 	"os/signal"
-	"strconv"
 	"sync"
 	"time"
 
@@ -32,27 +29,22 @@ func main() {
 	}
 }
 
-var (
-	mongoEp             string
-	mongoDB             string
-	mongoDocsCol        string
-	keycloakEp          string
-	spiceDBEp           string
-	spiceDBPresharedKey string
-	serverHost          string
-	serverPort          int
-)
+func mustGetenv(key string) string {
+	val, ok := os.LookupEnv(key)
+	if !ok {
+		panic(fmt.Sprintf("env var %s is not set", key))
+	}
+	return val
+}
 
 func run(ctx context.Context) error {
-	flag.StringVar(&mongoEp, "mongo-endpoint", "mongodb://root:password@localhost:27017", "Mongo endpoint")
-	flag.StringVar(&mongoDB, "mongo-db", "my-drive", "Mongo database name")
-	flag.StringVar(&mongoDocsCol, "mongo-docs-col", "document", "documents Mongo colection name")
-	flag.StringVar(&keycloakEp, "keycloak-endpoint", "http://localhost:8181", "Keycloak endpoint")
-	flag.StringVar(&spiceDBEp, "spicedb-endpoint", "localhost:50051", "SpiceDB endpoint")
-	flag.StringVar(&spiceDBPresharedKey, "spicedb-preshared-key", "preshared-key", "SpiceDB preshared key")
-	flag.StringVar(&serverHost, "server-host", "", "Server host")
-	flag.IntVar(&serverPort, "server-port", 8000, "Server port")
-	flag.Parse()
+	mongoEp := mustGetenv("MONGO_ENDPOINT")
+	mongoDB := mustGetenv("MONGO_DATABASE")
+	mongoDocsCol := mustGetenv("MONGO_DOCUMENTS_COLUMN")
+	keycloakEp := mustGetenv("KEYCLOAK_ENDPOINT")
+	spiceDBEp := mustGetenv("SPICEDB_ENDPOINT")
+	spiceDBPresharedKey := mustGetenv("SPICEDB_PRESHARED_KEY")
+	serverAddr := mustGetenv("SERVER_ADDRESS")
 
 	clientOptions := options.Client().ApplyURI(mongoEp)
 	mongoClient, err := mongo.Connect(clientOptions)
@@ -84,7 +76,7 @@ func run(ctx context.Context) error {
 
 	srv := docs.NewServer(logger, keycloak, mongoCol, spiceDB)
 	httpServer := &http.Server{
-		Addr:    net.JoinHostPort(serverHost, strconv.Itoa(serverPort)),
+		Addr:    serverAddr,
 		Handler: srv,
 	}
 	go func() {
