@@ -44,7 +44,7 @@ func run(ctx context.Context) error {
 	keycloakEp := mustGetenv("KEYCLOAK_ENDPOINT")
 	spiceDBEp := mustGetenv("SPICEDB_ENDPOINT")
 	spiceDBPresharedKey := mustGetenv("SPICEDB_PRESHARED_KEY")
-	serverAddr := mustGetenv("SERVER_ADDRESS")
+	serverAddr := mustGetenv("REST_SERVER_ADDRESS")
 
 	clientOptions := options.Client().ApplyURI(mongoEp)
 	mongoClient, err := mongo.Connect(clientOptions)

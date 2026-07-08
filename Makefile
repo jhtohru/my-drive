@@ -5,11 +5,15 @@ endif
 
 .PHONY: start-local-frontend
 start-local-frontend:
-	cd react-frontend && npm run dev
+	$(MAKE) -C react-frontend/ start-local
 
 .PHONY: start-local-rest-api
 start-local-rest-api:
-	cd rest-api && go run cmd/server/main.go
+	$(MAKE) -C rest-api/ start-local
+
+.PHONY: start-local-filesystem
+start-local-filesystem:
+	$(MAKE) -C filesystem/ start-local
 
 .PHONY: spin-up-local-env
 spin-up-local-env:
