@@ -11,9 +11,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Nerzal/gocloak/v14"
 	"github.com/authzed/authzed-go/v1"
 	"github.com/authzed/grpcutil"
+	"github.com/coreos/go-oidc"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"google.golang.org/grpc"
@@ -41,7 +41,7 @@ func run(ctx context.Context) error {
 	mongoEp := mustGetenv("MONGO_ENDPOINT")
 	mongoDB := mustGetenv("MONGO_DATABASE")
 	mongoDocsCol := mustGetenv("MONGO_DOCUMENTS_COLUMN")
-	keycloakEp := mustGetenv("KEYCLOAK_ENDPOINT")
+	oidcProviderEp := mustGetenv("OIDC_PROVIDER_ENDPOINT")
 	spiceDBEp := mustGetenv("SPICEDB_ENDPOINT")
 	spiceDBPresharedKey := mustGetenv("SPICEDB_PRESHARED_KEY")
 	serverAddr := mustGetenv("REST_SERVER_ADDRESS")
@@ -60,7 +60,11 @@ func run(ctx context.Context) error {
 	}()
 	mongoCol := mongoClient.Database(mongoDB).Collection(mongoDocsCol)
 
-	keycloak := gocloak.NewClient(keycloakEp)
+	oidcProvider, err := oidc.NewProvider(context.Background(), oidcProviderEp)
+	if err != nil {
+		log.Fatalf("Failed to connect to the OIDC provider: %v", err)
+	}
+	tokenVerifier := oidcProvider.Verifier(&oidc.Config{SkipClientIDCheck: true})
 
 	spiceDB, err := authzed.NewClient(
 		spiceDBEp,
@@ -74,7 +78,7 @@ func run(ctx context.Context) error {
 	logHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{AddSource: true})
 	logger := slog.New(logHandler)
 
-	srv := docs.NewServer(logger, keycloak, mongoCol, spiceDB)
+	srv := docs.NewServer(logger, tokenVerifier, mongoCol, spiceDB)
 	httpServer := &http.Server{
 		Addr:    serverAddr,
 		Handler: srv,

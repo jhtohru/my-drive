@@ -1,22 +1,29 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router";
-import { useKeycloak } from '@react-keycloak/web';
-import { Button } from "../components/ui/button";
+import { useAuth } from 'react-oidc-context';
 import { FileText } from "lucide-react";
+import { Button } from "../components/ui/button";
 
 export default function LandingPage() {
-	const { keycloak } = useKeycloak();
+  const auth = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    // If already authenticated, redirect to documents
-    if (keycloak.authenticated) {
+    if (auth.isAuthenticated) {
       navigate("/documents");
     }
-  }, [navigate, keycloak.authenticated]);
+  }, [auth.isAuthenticated, navigate]);
+
+  if (auth.isLoading) {
+    return <div>Loading authentication status</div>
+  }
+
+  if (auth.error) {
+    return <div>Authentication Error: {auth.error.message}</div>;
+  }
 
   const handleSignIn = () => {
-    keycloak.login();
+    auth.signinRedirect();
   };
 
   return (

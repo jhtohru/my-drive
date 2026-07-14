@@ -4,21 +4,21 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/Nerzal/gocloak/v14"
 	"github.com/authzed/authzed-go/v1"
+	"github.com/coreos/go-oidc"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 func NewServer(
 	logger *slog.Logger,
-	keycloak *gocloak.GoCloak,
+	tokenVerifier *oidc.IDTokenVerifier,
 	mongoCol *mongo.Collection,
 	spiceDB *authzed.Client,
 ) http.Handler {
 	mux := http.NewServeMux()
 
 	mch := NewMiddlewareChain(
-		authnMiddleware(keycloak),
+		authnMiddleware(tokenVerifier),
 		corsMiddleware,
 	)
 	mux.Handle("OPTIONS /docs", corsMiddleware(http.HandlerFunc(nopHandler)))

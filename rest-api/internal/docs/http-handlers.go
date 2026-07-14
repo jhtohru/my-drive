@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Nerzal/gocloak/v14"
 	v1 "github.com/authzed/authzed-go/proto/authzed/api/v1"
 	"github.com/authzed/authzed-go/v1"
+	"github.com/coreos/go-oidc"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -44,7 +44,7 @@ func (mc MiddlewareChain) Then(final http.Handler) http.Handler {
 }
 
 func authnMiddleware(
-	keycloak *gocloak.GoCloak,
+	tokenVerifier *oidc.IDTokenVerifier,
 ) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -53,21 +53,14 @@ func authnMiddleware(
 				encodeError(w, "missing Authorization header", http.StatusUnauthorized)
 				return
 			}
-			accessToken := strings.TrimSuffix(header, "Bearer ")
-			token, claims, err := keycloak.DecodeAccessToken(r.Context(), accessToken, "master")
+			rawToken := strings.TrimPrefix(header, "Bearer ")
+			token, err := tokenVerifier.Verify(r.Context(), rawToken)
 			if err != nil {
+				fmt.Println(err)
 				encodeError(w, "invalid access token", http.StatusUnauthorized)
 				return
 			}
-			if !token.Valid {
-				encodeError(w, "token is invalid or expired", http.StatusUnauthorized)
-				return
-			}
-			sub, err := claims.GetSubject()
-			if err != nil {
-				panic("missing access token subject")
-			}
-			usrID := uuid.MustParse(sub)
+			usrID := uuid.MustParse(token.Subject)
 			ctx := contextWithUserID(r.Context(), usrID)
 			r = r.Clone(ctx)
 			next.ServeHTTP(w, r)

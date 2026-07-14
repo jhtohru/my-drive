@@ -1,6 +1,16 @@
 Reference to setup Keycloak and React: https://dev.to/anushibin007/keycloak-oauth2-react-js-integration-34bl
 
 ## TODO
+- Integrate Casdoor with Postman
+- Integrate Casdoor with the REST API
+- Dump/Load casdoor init data
+- Update docker-compose.yaml
+- Integrate Casdoor with the React interface
+- Replace SpiceDB export/import with PostgreSQL export/import
+- Casdoor create user webhook
+- Parameterize the CORS middleware
+- Parameterize frontend envvars
+
 - Create gRPC server with a single endpoint to create a user alongside with her home directory
 - Utilize Keycloak Custom SPI to integrate user registering in Keycloak with the user creation endpoint
 - Develop gRPC's CRUD endpoints 
