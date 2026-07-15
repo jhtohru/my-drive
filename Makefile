@@ -17,20 +17,20 @@ start-local-filesystem:
 
 .PHONY: spin-up-local-env
 spin-up-local-env:
-	docker compose down -v && \
-	docker compose up -d --wait && \
-	make load-init-data
-
-.PHONY: load-init-data
-load-init-data:
-	./scripts/spicedb-backup-restore.sh
-	./scripts/mongo-restore.sh
-	./scripts/keycloak-import.sh
+	docker compose down -v --remove-orphans && \
+	docker compose up -d --wait
 
 .PHONY: dump-init-data
-dump-init-data:
-	rm -rf ./data
-	mkdir -p ./data
-	./scripts/spicedb-backup-create.sh
-	./scripts/mongo-dump.sh
-	./scripts/keycloak-export.sh
+dump-init-data: dump-casdoor-data dump-mongo-data dump-spicedb-data
+
+.PHONY: dump-casdoor-data
+dump-casdoor-data:
+	scripts/casdoor-pgdump.sh
+
+.PHONY: dump-mongo-data
+dump-mongo-data:
+	scripts/mongo-dump.sh
+
+.PHONY: dump-spicedb-data
+dump-spicedb-data:
+	scripts/spicedb-pgdump.sh
