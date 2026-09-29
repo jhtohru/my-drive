@@ -1,38 +1,31 @@
-import { AuthProvider } from 'react-oidc-context';
+import { ReactKeycloakProvider } from '@react-keycloak/web';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import { SecuredRoute } from './components/auth/SecuredRoute';
+import AuthenticatedRoute from './components/auth/AuthenticatedRoute';
 import LandingPage from './pages/LandingPage';
 import DocumentsList from './pages/DocumentsList';
 import DocumentViewer from './pages/DocumentViewer';
 import DocumentEditor from './pages/DocumentEditor';
+import Keycloak from 'keycloak-js';
 
-const oidcConfig = {
-  authority: 'http://localhost:8000',
-  client_id: 'f3f23d070d9db967220e',
-  redirect_uri: window.location.origin,
-  post_logout_redirect_uri: window.location.origin,
-  onSigninCallback: () => {
-    window.history.replaceState(
-      {},
-      document.title,
-      window.location.pathname,
-    );
-  },
-};
+const keycloak = new Keycloak({
+	url: 'http://localhost:8181',
+	realm: 'master',
+	clientId: 'react-frontend',
+});
 
 export default function App() {
-  return (
-    <AuthProvider {...oidcConfig}>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route element={<SecuredRoute />}>
-            <Route path="/documents" element={<DocumentsList/>} />
-            <Route path="/documents/:id/view" element={<DocumentViewer/>} />
-            <Route path="/documents/:id/edit" element={<DocumentEditor/>} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
-  );
+	return (
+		<ReactKeycloakProvider authClient={keycloak}>
+			<BrowserRouter>
+				<Routes>
+					<Route path="/" element={<LandingPage />}/>
+					<Route element={<AuthenticatedRoute />}>
+						<Route path="/documents" element={<DocumentsList/>} />
+            <Route path="/documents/:id/view" element={<DocumentViewer/>}/>
+            <Route path="/documents/:id/edit" element={<DocumentEditor/>}/>
+					</Route>
+				</Routes>
+			</BrowserRouter>
+		</ReactKeycloakProvider>
+	);
 }

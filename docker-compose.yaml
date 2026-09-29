@@ -1,16 +1,63 @@
 services:
+  keycloak-mysql:
+    image: mysql:8
+    container_name: keycloak-mysql
+    volumes:
+      - keycloak-db-vol:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_TCP_PORT: 3306
+  phpmyadmin:
+    image: phpmyadmin
+    container_name: phpmyadmin
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: keycloak-mysql
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.6.3
+    container_name: keycloak
+    ports:
+      - "${KEYCLOAK_PORT}:8080"
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_DB: mysql
+      KC_DB_URL_HOST: keycloak-mysql
+      KC_DB_URL_PORT: 3306
+      KC_DB_SCHEMA: ${MYSQL_DATABASE}
+      KC_DB_USERNAME: ${MYSQL_USER}
+      KC_DB_PASSWORD: ${MYSQL_PASSWORD}
+      KC_HEALTH_ENABLED: "true"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - |
+          set -e
+          exec 3<>/dev/tcp/localhost/9000
+          echo -e 'GET /health/live HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3
+          timeout 2 | grep -E '"status"[[:space:]]*:[[:space:]]*"UP"' <&3 
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    command: "start-dev"
+    depends_on:
+      - keycloak-mysql
   mongo:
     image: mongo:8.0.0
-    container_name: my-drive_mongo
+    container_name: mongo
     ports:
       - "${MONGO_PORT}:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
-      MONGO_LOG_ALL: "error"
     volumes:
-      - ./data/mongo/init.sh:/docker-entrypoint-initdb.d/init.sh # Comment it to avoid data initialization.
-      - ./data/mongo/mongo_backup.dump:/backup/mongo_backup.dump
       - mongo-vol:/data/db
   mongo-express:
     image: mongo-express:latest
@@ -25,81 +72,15 @@ services:
       ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_PASSWORD}
     depends_on:
       - mongo
-  casdoor:
-    image: casbin/casdoor-all-in-one:3.115.0
-    container_name: my-drive_casdoor
-    ports:
-      - "8000:8000"
-    environment:
-      driverName: "postgres"
-      dataSourceName: "user=casdoor password=secret host=casdoor-postgres port=5432 sslmode=disable dbname=casdoor"
-      origin: http://localhost:8000
-    depends_on:
-      casdoor-postgres:
-        condition: service_healthy
-  casdoor-postgres:
-    image: postgres:16.4-alpine
-    container_name: my-drive_casdoor-postgres
-    volumes:
-      - ./data/casdoor/:/docker-entrypoint-initdb.d/ # Comment it to avoid data initialization.
-      - casdoor-postgres_data:/var/lib/postgresql/data/
-    environment:
-      POSTGRES_USER: casdoor
-      POSTGRES_PASSWORD: secret
-      POSTGRES_DB: casdoor
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U casdoor"]
-      interval: 1s
-      timeout: 1s
-      retries: 5
-      start_period: 10s
-  spicedb-postgres:
-    image: postgres:16.4-alpine
-    container_name: my-drive_spicedb-postgres
-    volumes:
-      - ./data/spicedb/:/docker-entrypoint-initdb.d/ # Comment it to avoid data initialization.
-      - spicedb-postgres_data:/var/lib/postgresql/data/
-    environment:
-      POSTGRES_USER: spicedb
-      POSTGRES_PASSWORD: secret
-      POSTGRES_DB: spicedb
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U spicedb"]
-      interval: 1s
-      timeout: 1s
-      retries: 5
-      start_period: 10s
-  spicedb-datastore-migrator: # Needed if spicedb-postgres was not initialized.
-    image: authzed/spicedb:v1.54.0
-    container_name: my-drive_spicedb-datastore-migrator
-    environment:
-      SPICEDB_DATASTORE_ENGINE: postgres
-      SPICEDB_DATASTORE_CONN_URI: postgres://spicedb:secret@spicedb-postgres:5432/spicedb?sslmode=disable
-    depends_on:
-      spicedb-postgres:
-        condition: service_healthy
-    command: datastore migrate head
-  spicedb-datastore-repairer: # Needed if spicedb-postgres was initialized.
-    image: authzed/spicedb:v1.54.0
-    container_name: my-drive_spicedb-datastore-repairer
-    environment:
-      SPICEDB_DATASTORE_ENGINE: postgres
-      SPICEDB_DATASTORE_CONN_URI: postgres://spicedb:secret@spicedb-postgres:5432/spicedb?sslmode=disable
-    depends_on:
-      spicedb-datastore-migrator:
-        condition: service_completed_successfully
-    command: datastore repair transaction-ids
   spicedb:
     image: authzed/spicedb:v1.54.0
-    container_name: my-drive_spicedb
+    container_name: spicedb
     ports:
       - "${SPICEDB_PORT}:50051"
       - "50052:50052"
       - "9090:9090"
     environment:
       SPICEDB_GRPC_PRESHARED_KEY: ${SPICEDB_PRESHARED_KEY}
-      SPICEDB_DATASTORE_ENGINE: postgres
-      SPICEDB_DATASTORE_CONN_URI: postgres://spicedb:secret@spicedb-postgres:5432/spicedb?sslmode=disable
       SPICEDB_HTTP_ENABLED: "true"
       SPICEDB_DASHBOARD_ENABLED: "true"
       SPICEDB_LOG_FORMAT: console
@@ -111,24 +92,19 @@ services:
       timeout: 5s
       retries: 3
       start_period: 5s
-    depends_on:
-      spicedb-datastore-repairer:
-        condition: service_completed_successfully
-  spicedb-schema-writer: # Needed if spicedb-postgres was not initialized.
+  spicedb-schema-writer:
     image: authzed/zed:v1.1.1
     container_name: spicedb-schema-writer
     volumes:
-      - ./schema.zed:/schema.zed
+      - ./schema.zed:/workspace/schema.zed
     environment:
       ZED_ENDPOINT: spicedb:50051
       ZED_TOKEN: ${SPICEDB_PRESHARED_KEY}
       ZED_INSECURE: "true"
-    command: schema write /schema.zed
+    command: schema write /workspace/schema.zed
     depends_on:
-      spicedb:
-        condition: service_healthy
+      - spicedb
 
 volumes:
+  keycloak-db-vol:
   mongo-vol:
-  casdoor-postgres_data:
-  spicedb-postgres_data:

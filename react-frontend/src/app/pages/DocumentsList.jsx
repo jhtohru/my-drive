@@ -1,6 +1,6 @@
 import { useCallback, useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { useAuth } from 'react-oidc-context';
+import { useKeycloak } from '@react-keycloak/web';
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import useDocumentsApi from '../utils/documents';
@@ -27,7 +27,7 @@ import {
 
 export default function DocumentsList() {
   const { createDocument, deleteDocument, listDocuments } = useDocumentsApi();
-  const auth = useAuth();
+  const { keycloak } = useKeycloak();
   const navigate = useNavigate();
   const [documents, setDocuments] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -37,10 +37,6 @@ export default function DocumentsList() {
     listDocuments()
       .then(setDocuments);
   }, [listDocuments]); 
-
-  const logout = useCallback(() => {
-    auth.signoutRedirect();
-  }, [auth]);
 
   useEffect(() => {
     loadDocuments();
@@ -57,9 +53,7 @@ export default function DocumentsList() {
     setDeleteId(null);
   };
 
-  const handleLogout = () => {
-    logout();
-  };
+  const handleLogout = () => { keycloak.logout(); };
 
   const filteredDocuments = documents.filter((doc) =>
     doc.title.toLowerCase().includes(searchQuery.toLowerCase())

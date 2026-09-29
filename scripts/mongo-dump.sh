@@ -1,9 +1,17 @@
 #!/usr/bin/env bash
 
-docker exec my-drive_mongo \
-	mongodump \
-  --username=${MONGO_USERNAME} \
-  --password=${MONGO_PASSWORD} \
-  --db=${MONGO_DATABASE} \
-  --authenticationDatabase=admin \
-  --archive=/backup/mongo_backup.dump
+docker run \
+  -u "$(id -u):$(id -g)" \
+  -v $(pwd)/data:/workspace \
+  -w /workspace \
+  --net my-drive_default \
+  --rm \
+  mongo:8.0.0 \
+  mongodump \
+    --username root \
+    --password password \
+    --authenticationDatabase admin \
+    --host mongo:27017 \
+    --db my-drive \
+    --collection document \
+    --out ./mongo/

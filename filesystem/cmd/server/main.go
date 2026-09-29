@@ -33,9 +33,9 @@ func run(ctx context.Context) error {
 	mongoDBName := mustGetenv("MONGO_DATABASE")
 	usersColName := mustGetenv("MONGO_USERS_COLUMN")
 	serverAddr := mustGetenv("GRPC_SERVER_ADDRESS")
-
 	clientOptions := options.Client().ApplyURI(mongoEp)
 	mongoClient, err := mongo.Connect(clientOptions)
+
 	if err != nil {
 		log.Fatalf("Failed to create MongoDB client: %v", err)
 	}

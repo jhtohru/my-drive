@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
-import { useAuth } from 'react-oidc-context';
+import { useKeycloak } from '@react-keycloak/web';
 
-const BASE_URI = 'http://localhost:8001';
+const BASE_URI = 'http://localhost:8000';
 
 const parseDocument = (data) => ({
   ...data,
@@ -12,14 +12,14 @@ const parseDocument = (data) => ({
 });
 
 export default function useDocumentsApi() {
-  const auth = useAuth();
+  const { keycloak } = useKeycloak();
 
   const fetchApi = useCallback(async (path, { body, ...customConfig} = {}) => {
     const config = {
       method: body ? 'POST' : 'GET',
       ...customConfig,
       headers: {
-        'Authorization': `Bearer ${auth.user?.access_token}`,
+        'Authorization': `Bearer ${keycloak.token}`,
         'Content-Type': 'application/json',
         ...customConfig.headers,
       },
@@ -37,7 +37,7 @@ export default function useDocumentsApi() {
     }
 
 	  return response.status === 204 ? null : response.json();
-  }, [auth]);
+  }, [keycloak.token]);
 
   const createDocument = useCallback(
     (title, content) => fetchApi('/docs', {body: {title, content}}).then(parseDocument),
