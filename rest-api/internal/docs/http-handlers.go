@@ -53,7 +53,7 @@ func authnMiddleware(
 				encodeError(w, "missing Authorization header", http.StatusUnauthorized)
 				return
 			}
-			accessToken := strings.TrimSuffix(header, "Bearer ")
+			accessToken := strings.TrimPrefix(header, "Bearer ")
 			token, claims, err := keycloak.DecodeAccessToken(r.Context(), accessToken, "master")
 			if err != nil {
 				encodeError(w, "invalid access token", http.StatusUnauthorized)
